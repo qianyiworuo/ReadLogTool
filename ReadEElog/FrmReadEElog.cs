@@ -2,6 +2,7 @@
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Unicode;
+using static System.Windows.Forms.DataFormats;
 
 namespace ReadEElog
 {
@@ -31,7 +32,7 @@ namespace ReadEElog
                         // 获取选中的文件路径
                         string filePath = openFileDialog.FileName;
                         txtFilePath.Text = filePath; // 将文件路径显示在文本框中
-                                                     // 保存文件路径到 config.json
+                        // 保存文件路径到 config.json
                         SaveFilePathToConfig(filePath);
                     }
 
@@ -42,6 +43,7 @@ namespace ReadEElog
                 MessageBox.Show(ex.Message);
             }
         }
+
         private void SaveFilePathToConfig(string filePath)
         {
             // 检查 config.json 文件存在
@@ -69,18 +71,27 @@ namespace ReadEElog
         private void FrmReadEElog_Load(object sender, EventArgs e)
         {
             // 初始化 lvMissions 控件
-            InitlvMissions();
+            InitUi();
             // 加载文件路径
             LoadFilePathFromConfig();
         }
 
         //初始化lvMissions控件
-        private void InitlvMissions()
+        private void InitUi()
         {
             ColumnHeader ch = new ColumnHeader();
             ch = lvMissions.Columns.Add("任务序号", 100, HorizontalAlignment.Left);
             ch = lvMissions.Columns.Add("任务名称", 200, HorizontalAlignment.Left);
+
+            ch = lvMissionTime.Columns.Add("开始时间", 160, HorizontalAlignment.Left);
+            ch = lvMissionTime.Columns.Add("结束时间", 160, HorizontalAlignment.Left);
+
+            // 设置dtpStart格式为年-月-日 时:分
+            dtpStart.Format = DateTimePickerFormat.Custom;
+            dtpStart.CustomFormat = "yyyy-MM-dd HH:mm";
+
         }
+
         private void LoadFilePathFromConfig()
         {
             try
@@ -110,7 +121,7 @@ namespace ReadEElog
                 FilePath = "C:\\Users\\***\\AppData\\Local\\Warframe\\EE.log",
                 SearchString = "EidolonJobBoard.lua: Selected job with jobInfo:",
                 DefaultSearchKey = "\"jobStages\":",
-                jobStages = new[]
+                JobStages = new[]
                 {
                     new
                     {
@@ -126,7 +137,9 @@ namespace ReadEElog
                         DynamicSabotage = "破坏设施"
                     }
                 },
-                GoodJobs = "DynamicAssassinate,DynamicCapture,DynamicHijack,DynamicRescue,HiddenResourceCaches,HiddenResourceCachesCave"
+                GoodJobs = "DynamicAssassinate,DynamicCapture,DynamicHijack,DynamicRescue,HiddenResourceCaches,HiddenResourceCachesCave",
+                StartTime = DateTime.Now.AddDays(-1) // 默认显示前一天的任务
+
             };
 
             // 将配置对象序列化为 JSON 字符串并保存
@@ -152,7 +165,6 @@ namespace ReadEElog
                 MessageBox.Show($"保存配置时发生错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
-
 
         private void ReadConfig()
         {
@@ -189,8 +201,8 @@ namespace ReadEElog
                     }
                 }
 
-                // 尝试获取 jobStages 属性
-                if (root.TryGetProperty("jobStages", out JsonElement jobStagesElement) && jobStagesElement.ValueKind == JsonValueKind.Array)
+                // 尝试获取 JobStages 属性
+                if (root.TryGetProperty("JobStages", out JsonElement jobStagesElement) && jobStagesElement.ValueKind == JsonValueKind.Array)
                 {
                     dicConfig = new Dictionary<string, string>();
                     foreach (var jobStage in jobStagesElement.EnumerateArray())
@@ -211,6 +223,12 @@ namespace ReadEElog
                     // 将 JsonElement 转换为字符串
                     //string goodJobsJson = goodJobsElement.GetRawText();
                     sGoodJobs = goodJobsElement.GetString();
+                }
+                // 尝试获取StartTime属性
+                if (root.TryGetProperty("StartTime", out JsonElement startTimeElement))
+                {
+                    // 将StartTime值显示到DateTimePicker中
+                    dtpStart.Value = startTimeElement.GetDateTime();
                 }
             }
         }
@@ -403,5 +421,72 @@ namespace ReadEElog
                 }
             }
         }
+
+        private void btnMissionTime_Click(object sender, EventArgs e)
+        {
+            // 清空结果显示
+            lvMissionTime.Items.Clear();
+
+            // 获取起始日期时间
+            DateTime startTime = dtpStart.Value; // 从DateTimePicker中获取值
+
+            // 获取结束日期
+            DateTime endDate = dtpTarget.Value.Date; // 从DateTimePicker中获取结束日期部分
+            DateTime queryDate = endDate.AddDays(1); // 计算结束日期为第二天的开始
+
+            List<DateTime> refreshTimes = new List<DateTime>();
+            TimeSpan interval = TimeSpan.FromMinutes(150); // 150分钟的时间间隔
+
+            // 计算刷新时刻，直到结束日期
+            while (startTime < queryDate)
+            {
+                refreshTimes.Add(startTime);
+                startTime = startTime.Add(interval); // 添加时间间隔
+            }
+
+            // 显示特定查询日期的刷新时刻
+            foreach (var time in refreshTimes)
+            {
+                if (time.Date == endDate) // 显示指定结束日期的任务刷新列表
+                {
+                    DateTime endTime = time.Add(interval); // 计算结束时间
+                    ListViewItem lvItem = new ListViewItem();
+                    lvItem.Text = time.ToString("yyyy-MM-dd HH:mm");
+                    lvItem.SubItems.Add(endTime.ToString("yyyy-MM-dd HH:mm"));
+                    lvMissionTime.Items.Add(lvItem);
+                }
+            }
+
+            if (lvMissionTime.Items.Count == 0)
+            {
+                MessageBox.Show("在指定日期没有找到任何刷新时刻。", "信息", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            SaveStartTimeToConfig();
+        }
+
+        private void SaveStartTimeToConfig()
+        {
+            // 检查 config.json 文件存在
+            if (File.Exists("config.json"))
+            {
+                // 读取 config.json 文件内容
+                string json = File.ReadAllText("config.json");
+
+                // 将 JSON 字符串反序列化为字典
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var config = JsonSerializer.Deserialize<Dictionary<string, object>>(json, options);
+
+                // 更新 StartTime 值
+                if (config != null && config.ContainsKey("StartTime"))
+                {
+                    config["StartTime"] = dtpStart.Value; // 更新 StartTime 值
+                }
+
+                // 保存更新后的字典到 config.json 文件
+                string output = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText("config.json", output);
+            }
+        }
     }
 }
+
