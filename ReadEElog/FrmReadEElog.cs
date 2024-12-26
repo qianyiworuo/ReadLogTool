@@ -128,7 +128,8 @@ namespace ReadEElog
                     {
                         DynamicAssassinate = "刺杀",
                         DynamicCapture = "捕获",
-                        DynamicExterminate = "消灭敌人",
+                        DynamicExterminate = "地上消灭敌人",
+                        DynamicCaveExterminate = "地下消灭敌人",
                         DynamicHijack = "无人机",
                         DynamicRescue = "俘虏",
                         HiddenResourceCaches = "地上储存箱",
