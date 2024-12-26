@@ -101,7 +101,7 @@
             // 
             // lvMissions
             // 
-            lvMissions.Location = new Point(12, 113);
+            lvMissions.Location = new Point(12, 74);
             lvMissions.Name = "lvMissions";
             lvMissions.Size = new Size(341, 129);
             lvMissions.TabIndex = 6;
@@ -111,7 +111,7 @@
             // label3
             // 
             label3.AutoSize = true;
-            label3.Location = new Point(12, 86);
+            label3.Location = new Point(12, 217);
             label3.Name = "label3";
             label3.Size = new Size(55, 15);
             label3.TabIndex = 7;
@@ -120,7 +120,7 @@
             // lblResult
             // 
             lblResult.AutoSize = true;
-            lblResult.Location = new Point(74, 86);
+            lblResult.Location = new Point(74, 217);
             lblResult.Name = "lblResult";
             lblResult.Size = new Size(0, 15);
             lblResult.TabIndex = 8;
@@ -163,7 +163,7 @@
             // 
             // btnMissionTime
             // 
-            btnMissionTime.Location = new Point(278, 281);
+            btnMissionTime.Location = new Point(275, 265);
             btnMissionTime.Name = "btnMissionTime";
             btnMissionTime.Size = new Size(75, 23);
             btnMissionTime.TabIndex = 13;
@@ -183,7 +183,7 @@
             // lblRefreshTime
             // 
             lblRefreshTime.AutoSize = true;
-            lblRefreshTime.Location = new Point(262, 256);
+            lblRefreshTime.Location = new Point(173, 217);
             lblRefreshTime.Name = "lblRefreshTime";
             lblRefreshTime.Size = new Size(0, 15);
             lblRefreshTime.TabIndex = 15;

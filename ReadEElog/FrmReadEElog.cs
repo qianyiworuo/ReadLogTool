@@ -440,53 +440,47 @@ namespace ReadEElog
             // 清空结果显示
             lvMissionTime.Items.Clear();
 
-            // 获取起始日期时间
-            DateTime startTime = dtpStart.Value; // 从DateTimePicker中获取值
-
-            // 获取结束日期
-            DateTime endDate = dtpTarget.Value.Date; // 从DateTimePicker中获取结束日期部分
-            DateTime queryDate = endDate.AddDays(1); // 计算结束日期为第二天的开始
+            // 获取起始和结束日期时间
+            DateTime startTime = dtpStart.Value;
+            DateTime endDate = dtpTarget.Value.Date;
+            DateTime queryDate = endDate.AddDays(1);
+            TimeSpan interval = TimeSpan.FromMinutes(150);
 
             List<DateTime> refreshTimes = new List<DateTime>();
-            TimeSpan interval = TimeSpan.FromMinutes(150); // 150分钟的时间间隔
 
-            // 计算刷新时刻，直到结束日期
+            // 计算刷新时刻
             while (startTime < queryDate)
             {
                 if (startTime.Date == endDate.Date)
                 {
                     refreshTimes.Add(startTime);
                 }
-                startTime = startTime.Add(interval); // 添加时间间隔
+                startTime = startTime.Add(interval);
             }
+
+            // 预先获取当前时间
+            DateTime nowTime = DateTime.Now;
 
             // 显示特定查询日期的刷新时刻
             foreach (var time in refreshTimes)
             {
-                if (time.Date == endDate) // 显示指定结束日期的任务刷新列表
+                if (time.Date == endDate)
                 {
-                    DateTime endTime = time.Add(interval); // 计算结束时间
-                    ListViewItem lvItem = new ListViewItem();
-                    lvItem.Text = time.ToString("yyyy-MM-dd HH:mm");
-                    lvItem.SubItems.Add(endTime.ToString("yyyy-MM-dd HH:mm"));
+                    DateTime endTime = time.Add(interval);
+                    ListViewItem lvItem = new ListViewItem
+                    {
+                        Text = time.ToString("yyyy-MM-dd HH:mm"),
+                        SubItems = { endTime.ToString("yyyy-MM-dd HH:mm") }
+                    };
                     lvMissionTime.Items.Add(lvItem);
-                }
-            }
-            //判断当前时间是否在lvMissionTime之间
-            DateTime nowTime = DateTime.Now;
-            foreach (ListViewItem lvItem in lvMissionTime.Items)
-            {
-                DateTime dtStartTime = DateTime.Parse(lvItem.SubItems[0].Text);
-                DateTime dtEndTime = DateTime.Parse(lvItem.SubItems[1].Text);
-                if (nowTime >= dtStartTime && nowTime <= dtEndTime)
-                {
-                    //计算当前时间距离刷新时刻的剩余时间
-                    TimeSpan timeSpan = dtEndTime - nowTime;
-                    int hours = timeSpan.Hours;
-                    int minutes = timeSpan.Minutes;
-                    string timeLeft = string.Format("{0:D2}分", hours * 60 + minutes);
-                    lblRefreshTime.Text = "任务还有:" + timeLeft;
-                    break;
+
+                    // 判断当前时间是否在lvMissionTime之间
+                    if (nowTime >= time && nowTime <= endTime)
+                    {
+                        TimeSpan timeSpan = endTime - nowTime;
+                        string timeLeft = string.Format("{0:D2}分", (int)timeSpan.TotalMinutes);
+                        lblRefreshTime.Text = "距下一次刷新任务还有:" + timeLeft;
+                    }
                 }
             }
 
@@ -495,6 +489,7 @@ namespace ReadEElog
                 MessageBox.Show("在指定日期没有找到任何刷新时刻。", "信息", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
+
         private void SaveStartTimeToConfig()
         {
             // 检查 config.json 文件存在
