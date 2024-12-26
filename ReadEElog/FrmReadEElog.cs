@@ -3,6 +3,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Unicode;
 using static System.Windows.Forms.DataFormats;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
 
 namespace ReadEElog
 {
@@ -138,8 +139,7 @@ namespace ReadEElog
                     }
                 },
                 GoodJobs = "DynamicAssassinate,DynamicCapture,DynamicHijack,DynamicRescue,HiddenResourceCaches,HiddenResourceCachesCave",
-                StartTime = DateTime.Now.AddDays(-1) // 默认显示前一天的任务
-
+                StartTime = "2024-12-26 01:10" // 默认显示2024-12-26 01:10
             };
 
             // 将配置对象序列化为 JSON 字符串并保存
@@ -228,7 +228,13 @@ namespace ReadEElog
                 if (root.TryGetProperty("StartTime", out JsonElement startTimeElement))
                 {
                     // 将StartTime值显示到DateTimePicker中
-                    dtpStart.Value = startTimeElement.GetDateTime();
+                    // 指定日期时间的格式
+                    string format = "yyyy-MM-dd HH:mm";
+                    string ?startTimeString = startTimeElement.GetString();
+                    if (DateTime.TryParseExact(startTimeString, format,System.Globalization.CultureInfo.InvariantCulture,System.Globalization.DateTimeStyles.None, out DateTime startTime))
+                    {
+                        dtpStart.Value = startTime;
+                    }
                 }
             }
         }
@@ -424,6 +430,12 @@ namespace ReadEElog
 
         private void btnMissionTime_Click(object sender, EventArgs e)
         {
+            GetMissionTime();
+            SaveStartTimeToConfig();
+        }
+
+        private void GetMissionTime()
+        {
             // 清空结果显示
             lvMissionTime.Items.Clear();
 
@@ -440,7 +452,10 @@ namespace ReadEElog
             // 计算刷新时刻，直到结束日期
             while (startTime < queryDate)
             {
-                refreshTimes.Add(startTime);
+                if (startTime.Date == endDate.Date)
+                {
+                    refreshTimes.Add(startTime);
+                }
                 startTime = startTime.Add(interval); // 添加时间间隔
             }
 
@@ -456,14 +471,29 @@ namespace ReadEElog
                     lvMissionTime.Items.Add(lvItem);
                 }
             }
+            //判断当前时间是否在lvMissionTime之间
+            DateTime nowTime = DateTime.Now;
+            foreach (ListViewItem lvItem in lvMissionTime.Items)
+            {
+                DateTime dtStartTime = DateTime.Parse(lvItem.SubItems[0].Text);
+                DateTime dtEndTime = DateTime.Parse(lvItem.SubItems[1].Text);
+                if (nowTime >= dtStartTime && nowTime <= dtEndTime)
+                {
+                    //计算当前时间距离刷新时刻的剩余时间
+                    TimeSpan timeSpan = dtEndTime - nowTime;
+                    int hours = timeSpan.Hours;
+                    int minutes = timeSpan.Minutes;
+                    string timeLeft = string.Format("{0:D2}分", hours * 60 + minutes);
+                    lblRefreshTime.Text = "任务还有:" + timeLeft;
+                    break;
+                }
+            }
 
             if (lvMissionTime.Items.Count == 0)
             {
                 MessageBox.Show("在指定日期没有找到任何刷新时刻。", "信息", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
-            SaveStartTimeToConfig();
         }
-
         private void SaveStartTimeToConfig()
         {
             // 检查 config.json 文件存在
@@ -479,7 +509,8 @@ namespace ReadEElog
                 // 更新 StartTime 值
                 if (config != null && config.ContainsKey("StartTime"))
                 {
-                    config["StartTime"] = dtpStart.Value; // 更新 StartTime 值
+                    // 更新 StartTime 值
+                    config["StartTime"] = lvMissionTime.Items.Count > 0 ? lvMissionTime.Items[0].SubItems[0].Text : dtpStart.Value.ToString("yyyy-MM-dd HH:mm");
                 }
 
                 // 保存更新后的字典到 config.json 文件

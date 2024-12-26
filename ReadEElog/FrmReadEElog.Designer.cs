@@ -44,6 +44,7 @@
             dtpTarget = new DateTimePicker();
             btnMissionTime = new Button();
             lvMissionTime = new ListView();
+            lblRefreshTime = new Label();
             SuspendLayout();
             // 
             // btnSelectFile
@@ -179,11 +180,20 @@
             lvMissionTime.UseCompatibleStateImageBehavior = false;
             lvMissionTime.View = View.Details;
             // 
+            // lblRefreshTime
+            // 
+            lblRefreshTime.AutoSize = true;
+            lblRefreshTime.Location = new Point(262, 256);
+            lblRefreshTime.Name = "lblRefreshTime";
+            lblRefreshTime.Size = new Size(0, 15);
+            lblRefreshTime.TabIndex = 15;
+            // 
             // FrmReadEElog
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(362, 416);
+            Controls.Add(lblRefreshTime);
             Controls.Add(lvMissionTime);
             Controls.Add(btnMissionTime);
             Controls.Add(dtpTarget);
@@ -224,5 +234,6 @@
         private DateTimePicker dtpTarget;
         private Button btnMissionTime;
         private ListView lvMissionTime;
+        private Label lblRefreshTime;
     }
 }
