@@ -448,10 +448,12 @@ namespace ReadEElog
 
             List<DateTime> refreshTimes = new List<DateTime>();
 
+            DateTime endDateOnly = endDate.Date;
             // 计算刷新时刻
             while (startTime < queryDate)
             {
-                if (startTime.Date == endDate.Date)
+                // 若日期相同, 则添加刷新时刻
+                if (startTime.Date == endDateOnly)
                 {
                     refreshTimes.Add(startTime);
                 }

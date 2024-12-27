@@ -210,6 +210,8 @@
             Controls.Add(txtFilePath);
             Controls.Add(btnSelectFile);
             Icon = (Icon)resources.GetObject("$this.Icon");
+            MaximumSize = new Size(378, 455);
+            MinimumSize = new Size(378, 455);
             Name = "FrmReadEElog";
             Text = "夜灵平原任务查看器";
             Load += FrmReadEElog_Load;
