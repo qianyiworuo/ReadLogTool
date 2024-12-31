@@ -90,7 +90,8 @@ namespace ReadEElog
             // 设置dtpStart格式为年-月-日 时:分
             dtpStart.Format = DateTimePickerFormat.Custom;
             dtpStart.CustomFormat = "yyyy-MM-dd HH:mm";
-
+            // 设置dtpTarget格式为当前日期
+            dtpTarget.Text = DateTime.Now.ToString("yyyy-MM-dd");
         }
 
         private void LoadFilePathFromConfig()
