@@ -282,92 +282,79 @@ namespace ReadEElog
         {
             try
             {
-                using var file = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                long fileLength = file.Length;
-                StringBuilder jsonContentBuilder = new StringBuilder();
-                bool foundSearchString = false;
-
-                byte[] buffer = new byte[1024]; // 使用更大的缓冲区
-                long position = fileLength; // 从文件末尾开始
-
-                while (position > 0)
+                using (var file = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                 {
-                    position -= buffer.Length;
-                    if (position < 0) position = 0; // 确保不越界
-                    // 定位到文件位置
-                    file.Seek(position, SeekOrigin.Begin);
-                    // 读取文件内容
-                    int bytesRead = file.Read(buffer, 0, Math.Min(buffer.Length, (int)(file.Length - position)));
-                    if (bytesRead <= 0) continue; // 若未读取到字节, 继续循环
+                    long position = file.Length - 1;
+                    byte[] buffer = new byte[1024];
+                    StringBuilder sb = new StringBuilder();
+                    bool foundSearchString = false;
 
-                    string chunk = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-
-                    if (ProcessChunk(chunk, searchString, ref foundSearchString, ref jsonContentBuilder))
+                    while (position >= 0)
                     {
-                        if (foundSearchString && jsonContentBuilder.ToString().Contains("{"))
+                        int readSize = (int)Math.Min(buffer.Length, position + 1);
+                        file.Seek(position - readSize + 1, SeekOrigin.Begin);
+                        int bytesRead = file.Read(buffer, 0, readSize);
+                        if (bytesRead == 0) break;
+
+                        string chunk = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+
+                        if (!foundSearchString)
                         {
-                            return ExtractJsonUntilClosingBracket(file, ref position, jsonContentBuilder);
+                            int searchIndex = chunk.LastIndexOf(searchString);
+                            if (searchIndex != -1)
+                            {
+                                foundSearchString = true;
+                                sb.Insert(0, chunk.Substring(searchIndex));
+                                position -= readSize - searchIndex;
+                                continue;
+                            }
+                        }
+                        
+                        sb.Insert(0, chunk);
+                        position -= bytesRead;
+
+                        if (foundSearchString)
+                        {
+                            int openBraceIndex = sb.ToString().IndexOf('{');
+                            int closeBraceIndex = sb.ToString().LastIndexOf('}');
+
+                            if (openBraceIndex != -1 && closeBraceIndex != -1)
+                            {
+                                string jsonContent = sb.ToString().Substring(openBraceIndex, closeBraceIndex - openBraceIndex + 1);
+                                return ExtractJobStagesFromJson(jsonContent);
+                            }
                         }
                     }
                 }
             }
-            catch (Exception e)
+            catch (FileNotFoundException)
             {
-                MessageBox.Show(e.Message);
+                ShowError($"文件未找到: {filePath}");
+            }
+            catch (UnauthorizedAccessException)
+            {
+                ShowError($"没有权限访问文件: {filePath}");
+            }
+            catch (IOException e)
+            {
+                ShowError($"文件读取错误: {e.Message}");
+            }
+            catch (Exception ex)
+            {
+                ShowError($"发生未知错误: {ex.Message}");
             }
             return null;
         }
 
-        private bool ProcessChunk(string chunk, string searchString, ref bool foundSearchString, ref StringBuilder jsonContentBuilder)
+        /// <summary>
+        /// 显示错误消息的辅助方法
+        /// </summary>
+        private void ShowError(string message)
         {
-            if (foundSearchString)
-            {
-                int openBracketIndex = chunk.LastIndexOf('{');
-                if (openBracketIndex != -1)
-                {
-                    jsonContentBuilder.Append(chunk.Substring(openBracketIndex));
-                    return true;
-                }
-            }
-            else
-            {
-                int searchIndex = chunk.LastIndexOf(searchString);
-                if (searchIndex != -1)
-                {
-                    foundSearchString = true;
-                    jsonContentBuilder.Append(chunk.Substring(searchIndex));
-                    return true;
-                }
-            }
-            jsonContentBuilder.Append(chunk);
-            return false;
+            MessageBox.Show(message, "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 
-        private List<string> ExtractJsonUntilClosingBracket(FileStream file, ref long position, StringBuilder jsonContentBuilder)
-        {
-            byte[] buffer = new byte[1024]; // 更大的缓冲区
-
-            while (position > 0)
-            {
-                position -= buffer.Length;
-                if (position < 0) position = 0; // 确保不越界
-
-                file.Seek(position, SeekOrigin.Begin);
-                int bytesRead = file.Read(buffer, 0, Math.Min(buffer.Length, (int)(file.Length - position)));
-                string chunk = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-
-                int closeBracketIndex = chunk.LastIndexOf('}');
-                if (closeBracketIndex != -1)
-                {
-                    jsonContentBuilder.Append(chunk.Substring(0, closeBracketIndex + 1));
-                    return ExtractJobStagesFromJson(jsonContentBuilder.ToString());
-                }
-                jsonContentBuilder.Append(chunk);
-            }
-
-            return null;
-        }
-
+        // 提取 jobStages 数组
         private List<string> ExtractJobStagesFromJson(string jsonString)
         {
             List<string> jobStages = new List<string>();
