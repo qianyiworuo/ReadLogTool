@@ -3,3 +3,5 @@ bin/
 obj/
 PublishProfiles/
 Properties/
+/.idea/.idea.ReadEElog/.idea
+*.user
